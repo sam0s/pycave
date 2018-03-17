@@ -1,6 +1,7 @@
 from pyglet.gl import *
 from pyglet.window import key
 import math
+import mazeGen
 from os import path
 
 def vec(*args):
@@ -102,7 +103,19 @@ class Window(pyglet.window.Window):
 
         self.model=Model()
         self.model.create_room()
-        self.model.add_wall(5,0,5,"")
+
+
+        gameLevel,playerPos=mazeGen.generate()
+        self.player = Player((playerPos[0],1,playerPos[1]),(-30,0))
+        x=0
+        y=0
+        for row in gameLevel:
+            for col in row:
+                if col==0:self.model.add_wall(x,0,y,"")
+                x+=1
+            x=0
+            y+=1
+
 
         #for a in range(30):
         #    for b in range(30):
@@ -115,7 +128,7 @@ class Window(pyglet.window.Window):
             ('v2i', (x - n, y, x + n, y, x, y - n, x, y + n))
         )
 
-        self.player = Player((3,1,3),(-30,0))
+
 
 
     def on_resize(self, width, height):
