@@ -61,7 +61,7 @@ class Player:
         elif self.rot[0]<-90: self.rot[0] = -90
 
     def update(self,dt,keys):
-        s = dt*4
+        s = dt*2
         rotY = -self.rot[1]/180*math.pi
         dx,dz = s*math.sin(rotY),s*math.cos(rotY)
         if keys[key.W]: self.pos[0]+=dx; self.pos[2]-=dz
@@ -104,9 +104,14 @@ class Window(pyglet.window.Window):
         self.model=Model()
         self.model.create_room()
 
+        #set up initial weapon position
+        self.weaponSprite=pyglet.sprite.Sprite(pyglet.image.load(path.join('images','fork.png')).get_region(x=0,y=0,width=100,height=100))
+        self.weaponSprite.scale=((self.width+self.height)/650)
+        self.weaponSprite.x=(self.width // 2)-self.weaponSprite.width/2
+
 
         gameLevel,playerPos=mazeGen.generate()
-        self.player = Player((playerPos[0],1,playerPos[1]),(-30,0))
+        self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
         x=0
         y=0
         for row in gameLevel:
@@ -116,12 +121,6 @@ class Window(pyglet.window.Window):
             x=0
             y+=1
 
-
-        #for a in range(30):
-        #    for b in range(30):
-        #        self.model.add_Block(a,1,b,"grass")
-        ###
-
         x, y = self.width // 2, self.height // 2
         n = 10
         self.reticle = pyglet.graphics.vertex_list(4,
@@ -129,9 +128,11 @@ class Window(pyglet.window.Window):
         )
 
 
-
-
     def on_resize(self, width, height):
+        #weaponSprite
+        self.weaponSprite.scale=((self.width+self.height)/650)
+        self.weaponSprite.x=(self.width // 2)-self.weaponSprite.width/2
+
         # reticle
         if self.reticle:
             self.reticle.delete()
@@ -170,6 +171,7 @@ class Window(pyglet.window.Window):
         glPopMatrix()
         self.set2d()
         self.draw_reticle()
+        self.weaponSprite.draw()
         glColor3d(1,1,1)
 
 
