@@ -4,8 +4,22 @@ import math
 import mazeGen
 from os import path
 
-def vec(*args):
-    return (GLfloat * len(args))(*args)
+def normalize(position):
+    """ Accepts `position` of arbitrary precision and returns the block
+    containing that position.
+
+    Parameters
+    ----------
+    position : tuple of len 3
+
+    Returns
+    -------
+    block_position : tuple of ints of len 3
+
+    """
+    x, y, z = position
+    x, y, z = (int(round(x)), int(round(y)), int(round(z)))
+    return (x, y, z)
 
 class Model:
 
@@ -47,42 +61,88 @@ class Model:
     def draw(self):
         self.batch.draw()
 
+
+
+#key/direction matrix (says how we should move based on where we are looking and what key we press)
+KDM={'w':{'n':(0,1),'e':(-1,0),'s':(0,-1),'w':(1,0),},
+    's':{'n':(0,-1),'e':(1,0),'s':(0,1),'w':(-1,0),},
+    'a':{'n':(1,0),'e':(0,1),'s':(-1,0),'w':(0,-1),},
+    'd':{'n':(-1,0),'e':(0,-1),'s':(1,0),'w':(0,1),}}
+
 class Player:
-    def __init__(self,pos=(0,0,0),rot=(0,0)):
+    def __init__(self,pos=(0,0,0),rot=(0,0),world=[]):
         self.pos = list(pos)
         self.rot = list(rot)
         self.bobFrame=0
-        self.xm=0
-        self.zm=0
-
+        self.target=0
+        self.world=world
+        self.ms=0.02
     def mouse_motion(self,dx,dy):
         dx/=8; dy/=8; self.rot[0]+=dy; self.rot[1]-=dx
         if self.rot[0]>90: self.rot[0] = 90
         elif self.rot[0]<-90: self.rot[0] = -90
-
+    def get_facing(self,rot):
+        rot=round(rot)
+        dAngs={'n':(135,225),'e':(226,315),'s1':(316,360),'s2':(0,45),'w':(46,134)}
+        if rot>=dAngs['n'][0] and rot<=dAngs['n'][1]: return 'n'
+        if rot>=dAngs['e'][0] and rot<=dAngs['e'][1]: return 'e'
+        if rot>=dAngs['s1'][0] and rot<=dAngs['s1'][1]: return 's'
+        if rot>=dAngs['s2'][0] and rot<=dAngs['s2'][1]: return 's'
+        if rot>=dAngs['w'][0] and rot<=dAngs['w'][1]: return 'w'
     def update(self,dt,keys):
+        #update camera bob
         if self.bobFrame>=3.1:self.bobFrame=0
-        print(self.bobFrame)
-        self.pos[1]=(0.3+abs(math.sin(self.bobFrame))/8)
-        s = dt*2
-        rotY = -self.rot[1]/180*math.pi
-        dx,dz = s*math.sin(rotY),s*math.cos(rotY)
+        self.pos[1]=(0.3+abs(math.sin(self.bobFrame))/22)
+        #speed
+        s = dt*100
         a=1
-        if keys[key.W]: self.pos[0]+=dx; self.pos[2]-=dz;a=0
-        if keys[key.S]: self.pos[0]-=dx; self.pos[2]+=dz;a=0
-        if keys[key.A]: self.pos[0]-=dz; self.pos[2]-=dx;a=0
-        if keys[key.D]: self.pos[0]+=dz; self.pos[2]+=dx;a=0
-        
-        if a==1:
-            if self.bobFrame!=0:
-                self.bobFrame+=0.09
+        #Find the current coterminal of the facing angle in degrees
+        rotY = -self.rot[1]/180*math.pi
+        rotdeg=rotY*180/math.pi
+        while rotdeg>360:
+            rotdeg-=360
+        while rotdeg<0:
+            rotdeg+=360
+        #facing direction
+        fd=self.get_facing(rotdeg)
+        if self.target==0:
+            if keys[key.W]: self.target=[self.pos[0]+KDM['w'][fd][0],self.pos[2]+KDM['w'][fd][1]]
+            elif keys[key.S]: self.target=[self.pos[0]+KDM['s'][fd][0],self.pos[2]+KDM['s'][fd][1]]
+            elif keys[key.A]: self.target=[self.pos[0]+KDM['a'][fd][0],self.pos[2]+KDM['a'][fd][1]]
+            elif keys[key.D]: self.target=[self.pos[0]+KDM['d'][fd][0],self.pos[2]+KDM['d'][fd][1]]
+
         else:
-            self.bobFrame+=0.08;
+            wx=int(self.target[0])
+            wy=int(self.target[1])
+            if self.world[wy][wx] == 1:
+                #move until we reach our target!
+                #round so that we land perfectly on 0.
+                self.pos[0],self.pos[2]=round(self.pos[0],2),round(self.pos[2],2)
+                a=0
+                if self.pos[0]<self.target[0]:
+                    self.pos[0]+=self.ms*s
+                    if self.pos[0]>self.target[0]:self.pos[0]=self.target[0]
+                elif self.pos[0]>self.target[0]:
+                    self.pos[0]-=self.ms*s
+                    if self.pos[0]<self.target[0]:self.pos[0]=self.target[0]
+                elif self.pos[2]<self.target[1]:
+                    self.pos[2]+=self.ms*s
+                    if self.pos[2]>self.target[1]:self.pos[2]=self.target[1]
+                elif self.pos[2]>self.target[1]:
+                    self.pos[2]-=self.ms*s
+                    if self.pos[2]<self.target[1]:self.pos[2]=self.target[1]
+                else: self.target=0; #perfect 0 landing
+            else:self.target=0; #perfect 0 landing
 
+        #bobit
+        if a==1:
+            #recovery bob
+            if self.bobFrame!=0:
+                self.bobFrame+=0.32
+        else:
+            #bob while moving
+            self.bobFrame+=3 / ( (1/(self.ms*s))/2 )
 
-        
-        if keys[key.SPACE]: self.pos[1]+=s
-        if keys[key.LSHIFT]: self.pos[1]-=s
 
 class Window(pyglet.window.Window):
 
@@ -123,7 +183,8 @@ class Window(pyglet.window.Window):
 
 
         gameLevel,playerPos=mazeGen.generate()
-        self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
+        #self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
+        self.player = Player((0.5,0.3,0.5),(-30,0),gameLevel)
         x=0
         y=0
         for row in gameLevel:
@@ -132,7 +193,7 @@ class Window(pyglet.window.Window):
                 x+=1
             x=0
             y+=1
-
+        print(gameLevel)
         x, y = self.width // 2, self.height // 2
         n = 10
         self.reticle = pyglet.graphics.vertex_list(4,
@@ -155,14 +216,8 @@ class Window(pyglet.window.Window):
         )
 
     def on_mouse_motion(self,x,y,dx,dy):
-        if self.reticle:self.reticle.delete()
+        #if self.reticle:self.reticle.delete()
         if self.mouse_lock: self.player.mouse_motion(dx,dy)
-        x, y = self.width // 2, self.height // 2
-        n = 10
-        self.reticle = pyglet.graphics.vertex_list(4,
-            ('v2i', (x - n, y, x + n, y, x, y - n, x, y + n))
-        )
-
 
     def on_key_press(self,KEY,MOD):
         if KEY == key.ESCAPE: self.close()
