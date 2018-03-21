@@ -27,9 +27,6 @@ class Model:
         'wall':self.get_tex(path.join('images','wall.png')),
         'ceiling':self.get_tex(path.join('images','ceiling.png')),
         }
-
-
-
         self.batch = pyglet.graphics.Batch()
     def add_wall(self,sx,sy,sz,tex):
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
@@ -54,6 +51,9 @@ class Player:
     def __init__(self,pos=(0,0,0),rot=(0,0)):
         self.pos = list(pos)
         self.rot = list(rot)
+        self.bobFrame=0
+        self.xm=0
+        self.zm=0
 
     def mouse_motion(self,dx,dy):
         dx/=8; dy/=8; self.rot[0]+=dy; self.rot[1]-=dx
@@ -61,14 +61,26 @@ class Player:
         elif self.rot[0]<-90: self.rot[0] = -90
 
     def update(self,dt,keys):
+        if self.bobFrame>=3.1:self.bobFrame=0
+        print(self.bobFrame)
+        self.pos[1]=(0.3+abs(math.sin(self.bobFrame))/8)
         s = dt*2
         rotY = -self.rot[1]/180*math.pi
         dx,dz = s*math.sin(rotY),s*math.cos(rotY)
-        if keys[key.W]: self.pos[0]+=dx; self.pos[2]-=dz
-        if keys[key.S]: self.pos[0]-=dx; self.pos[2]+=dz
-        if keys[key.A]: self.pos[0]-=dz; self.pos[2]-=dx
-        if keys[key.D]: self.pos[0]+=dz; self.pos[2]+=dx
+        a=1
+        if keys[key.W]: self.pos[0]+=dx; self.pos[2]-=dz;a=0
+        if keys[key.S]: self.pos[0]-=dx; self.pos[2]+=dz;a=0
+        if keys[key.A]: self.pos[0]-=dz; self.pos[2]-=dx;a=0
+        if keys[key.D]: self.pos[0]+=dz; self.pos[2]+=dx;a=0
+        
+        if a==1:
+            if self.bobFrame!=0:
+                self.bobFrame+=0.09
+        else:
+            self.bobFrame+=0.08;
 
+
+        
         if keys[key.SPACE]: self.pos[1]+=s
         if keys[key.LSHIFT]: self.pos[1]-=s
 
