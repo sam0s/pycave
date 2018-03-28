@@ -4,64 +4,60 @@ import math
 import mazeGen
 from os import path
 
-def normalize(position):
-    """ Accepts `position` of arbitrary precision and returns the block
-    containing that position.
+def distance(s,e):
+    #should be set of 3 numbers per position
+    #returns distance between two points
+    s=[s[0],s[2]]
+    e=[e[0],e[2]]
+    total = math.sqrt((s[0] - e[0])**2 + (s[1] - e[1])**2)
+    return total
 
-    Parameters
-    ----------
-    position : tuple of len 3
+def get_tex(file):
+    tex = pyglet.image.load(file).texture
+    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST)
+    glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    return pyglet.graphics.TextureGroup(tex)
 
-    Returns
-    -------
-    block_position : tuple of ints of len 3
-
-    """
-    x, y, z = position
-    x, y, z = (int(round(x)), int(round(y)), int(round(z)))
-    return (x, y, z)
+FLAT_TEXTURE_GROUP={
+'floor':get_tex(path.join('images','floor.png')),
+'wall':get_tex(path.join('images','wall.png')),
+'ceiling':get_tex(path.join('images','ceiling.png')),
+'chestside':get_tex(path.join('images','chests.png')),
+'chesttop':get_tex(path.join('images','chestt.png'))
+}
 
 class Model:
-
-    def get_tex(self,file):
-        tex = pyglet.image.load(file).texture
-        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST)
-        glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST)
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        return pyglet.graphics.TextureGroup(tex)
-
     def __init__(self):
         self.top=0
         self.bottom=0
         self.side=0
-
-        self.flatTextureGroup={
-        'floor':self.get_tex(path.join('images','floor.png')),
-        'wall':self.get_tex(path.join('images','wall.png')),
-        'ceiling':self.get_tex(path.join('images','ceiling.png')),
-        }
         self.batch = pyglet.graphics.Batch()
+
+        self.extras=[]
+        self.batch2 = pyglet.graphics.Batch()
+
     def add_wall(self,sx,sy,sz,tex):
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
         x,y,z = sx,sy,sz
         X,Y,Z = x+1,y+1,z+1
 
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords)
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords)
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),tex_coords)
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),tex_coords)
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords)
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['wall'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['wall'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords)
 
     def create_room(self):
         tex_coords = ('t2f',(0,0, 16,0, 16,16, 0,16, ))
-        self.batch.add(4,GL_QUADS,self.flatTextureGroup['floor'],('v3f',(0,0,0, 0,0,25, 25,0,25, 25,0,0) ),tex_coords)
+        self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['floor'],('v3f',(0,0,0, 0,0,27, 27,0,27, 27,0,0) ),tex_coords)
 
     def draw(self):
+        #print(self.extras) BLOCK REMOVAL FINSH IT SAM
         self.batch.draw()
-
-
+        self.batch2.draw()
 
 #key/direction matrix (says how we should move based on where we are looking and what key we press)
 KDM={'w':{'n':(0,1),'e':(-1,0),'s':(0,-1),'w':(1,0),},
@@ -69,14 +65,60 @@ KDM={'w':{'n':(0,1),'e':(-1,0),'s':(0,-1),'w':(1,0),},
     'a':{'n':(1,0),'e':(0,1),'s':(-1,0),'w':(0,-1),},
     'd':{'n':(-1,0),'e':(0,-1),'s':(1,0),'w':(0,1),}}
 
+class Crate:
+    def __init__(self,pos=(0,0,0),batch=None):
+        self.pos=list(pos)
+        self.geometry=[]
+        self.batch=batch
+        self.wid=(self.pos[0],self.pos[2])
+
+        sx=self.pos[0]+0.4
+        sy=0
+        sz=self.pos[2]+0.4
+
+        tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
+        x,y,z = sx,sy,sz
+        X,Y,Z = x+0.2,y+0.2,z+0.2
+
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chesttop'],('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords))
+
+    def update(self):
+        pass
+
+class Enemy:
+    def __init__(self,pos=(0,0,0)):
+        self.pos=list(pos)
+    def update(self):
+        pass
+    def draw(self):
+        sx=self.pos[0]
+        sy=0
+        sz=self.pos[2]
+        tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
+        x,y,z = sx,sy,sz
+        X,Y,Z = x+1,y+1,z+1
+
+        pic = pyglet.image.load(path.join('images','orc.png'))
+        texture = pic.get_texture()
+        pyglet.gl.glEnable(texture.target)
+        pyglet.gl.glBindTexture(texture.target, texture.id)
+
+        pyglet.graphics.draw(4,GL_QUADS,('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords)
+
 class Player:
-    def __init__(self,pos=(0,0,0),rot=(0,0),world=[]):
+    def __init__(self,pos=(0,0,0),rot=(0,0),world=[],mod=None):
         self.pos = list(pos)
         self.rot = list(rot)
         self.bobFrame=0
         self.target=0
         self.world=world
         self.ms=0.02
+        self.model=mod
     def mouse_motion(self,dx,dy):
         dx/=8; dy/=8; self.rot[0]+=dy; self.rot[1]-=dx
         if self.rot[0]>90: self.rot[0] = 90
@@ -92,7 +134,7 @@ class Player:
     def update(self,dt,keys):
         #update camera bob
         if self.bobFrame>=3.1:self.bobFrame=0
-        self.pos[1]=(0.3+abs(math.sin(self.bobFrame))/22)
+        self.pos[1]=(0.5+abs(math.sin(self.bobFrame))/22)
         #speed
         s = dt*100
         a=1
@@ -105,16 +147,25 @@ class Player:
             rotdeg+=360
         #facing direction
         fd=self.get_facing(rotdeg)
+        if keys[key.SPACE]:self.pos[1]+=0.1
         if self.target==0:
             if keys[key.W]: self.target=[self.pos[0]+KDM['w'][fd][0],self.pos[2]+KDM['w'][fd][1]]
             elif keys[key.S]: self.target=[self.pos[0]+KDM['s'][fd][0],self.pos[2]+KDM['s'][fd][1]]
             elif keys[key.A]: self.target=[self.pos[0]+KDM['a'][fd][0],self.pos[2]+KDM['a'][fd][1]]
             elif keys[key.D]: self.target=[self.pos[0]+KDM['d'][fd][0],self.pos[2]+KDM['d'][fd][1]]
-
         else:
+            #grid position of player (world-x,world-y)
             wx=int(self.target[0])
             wy=int(self.target[1])
-            if self.world[wy][wx] == 1:
+
+            #if collide with crate, break it.
+            if self.world[wy][wx]==3:
+                for extrablock in self.model.extras:
+                    if extrablock.wid==(wx,wy):
+                        self.model.extras.pop(self.model.extras.index(extrablock))
+                        for face in extrablock.geometry:face.delete()
+
+            if self.world[wy][wx] != 0:
                 #move until we reach our target!
                 #round so that we land perfectly on 0.
                 self.pos[0],self.pos[2]=round(self.pos[0],2),round(self.pos[2],2)
@@ -142,7 +193,6 @@ class Player:
         else:
             #bob while moving
             self.bobFrame+=3 / ( (1/(self.ms*s))/2 )
-
 
 class Window(pyglet.window.Window):
 
@@ -182,18 +232,20 @@ class Window(pyglet.window.Window):
         self.weaponSprite.x=(self.width // 2)-self.weaponSprite.width/2
 
 
-        gameLevel,playerPos=mazeGen.generate()
+        gameLevel,playerPos,endPos=mazeGen.generate(25)
         #self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
-        self.player = Player((0.5,0.3,0.5),(-30,0),gameLevel)
+        self.player = Player((playerPos[0]+0.5,0.5,playerPos[1]+0.5),(-30,0),gameLevel,self.model)
+        #
         x=0
         y=0
         for row in gameLevel:
             for col in row:
                 if col==0:self.model.add_wall(x,0,y,"")
+                if col==3:self.model.extras.append(Crate((x,0,y),self.model.batch2))
                 x+=1
             x=0
             y+=1
-        print(gameLevel)
+        #print(gameLevel)
         x, y = self.width // 2, self.height // 2
         n = 10
         self.reticle = pyglet.graphics.vertex_list(4,
@@ -246,6 +298,8 @@ if __name__ == '__main__':
     window = Window(width=854,height=480,caption='3d Dungeon',resizable=True)
     glClearColor(0.5,0.7,1,1)
     glEnable(GL_DEPTH_TEST)
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     #glEnable(GL_CULL_FACE)
     #setup_fog()
     pyglet.app.run()
