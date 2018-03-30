@@ -25,7 +25,8 @@ FLAT_TEXTURE_GROUP={
 'wall':get_tex(path.join('images','wall.png')),
 'ceiling':get_tex(path.join('images','ceiling.png')),
 'chestside':get_tex(path.join('images','chests.png')),
-'chesttop':get_tex(path.join('images','chestt.png'))
+'chesttop':get_tex(path.join('images','chestt.png')),
+'enemy1':get_tex(path.join('images','orc.png'))
 }
 
 class Model:
@@ -91,24 +92,23 @@ class Crate:
         pass
 
 class Enemy:
-    def __init__(self,pos=(0,0,0)):
+    def __init__(self,pos=(0,0,0),batch=None):
         self.pos=list(pos)
-    def update(self):
-        pass
-    def draw(self):
-        sx=self.pos[0]
+        self.geometry=[]
+        self.batch=batch
+        self.wid=(self.pos[0],self.pos[2])
+
+        sx=self.pos[0]+0.4
         sy=0
-        sz=self.pos[2]
+        sz=self.pos[2]+0.4
+
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
         x,y,z = sx,sy,sz
-        X,Y,Z = x+1,y+1,z+1
+        X,Y,Z = x+0.2,y+0.2,z+0.2
 
-        pic = pyglet.image.load(path.join('images','orc.png'))
-        texture = pic.get_texture()
-        pyglet.gl.glEnable(texture.target)
-        pyglet.gl.glBindTexture(texture.target, texture.id)
-
-        pyglet.graphics.draw(4,GL_QUADS,('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords)
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
+    def update(self):
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
 
 class Player:
     def __init__(self,pos=(0,0,0),rot=(0,0),world=[],mod=None):
@@ -134,7 +134,7 @@ class Player:
     def update(self,dt,keys):
         #update camera bob
         if self.bobFrame>=3.1:self.bobFrame=0
-        self.pos[1]=(0.5+abs(math.sin(self.bobFrame))/22)
+        #self.pos[1]=(0.5+abs(math.sin(self.bobFrame))/22)
         #speed
         s = dt*100
         a=1
@@ -221,8 +221,7 @@ class Window(pyglet.window.Window):
         self.push_handlers(self.keys)
         pyglet.clock.schedule(self.update)
 
-        ###
-
+        #World Model
         self.model=Model()
         self.model.create_room()
 
@@ -235,17 +234,20 @@ class Window(pyglet.window.Window):
         gameLevel,playerPos,endPos=mazeGen.generate(25)
         #self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
         self.player = Player((playerPos[0]+0.5,0.5,playerPos[1]+0.5),(-30,0),gameLevel,self.model)
-        #
+
+        #build world (will move to model class soon)
         x=0
         y=0
         for row in gameLevel:
             for col in row:
                 if col==0:self.model.add_wall(x,0,y,"")
-                if col==3:self.model.extras.append(Crate((x,0,y),self.model.batch2))
+                if col==3:self.model.extras.append(Crate((x,0,y),self.model.batch))
+                if col==4:self.model.extras.append(Enemy((x,0,y),self.model.batch2))
                 x+=1
             x=0
             y+=1
-        #print(gameLevel)
+
+        #reticle setup
         x, y = self.width // 2, self.height // 2
         n = 10
         self.reticle = pyglet.graphics.vertex_list(4,
@@ -268,7 +270,7 @@ class Window(pyglet.window.Window):
         )
 
     def on_mouse_motion(self,x,y,dx,dy):
-        #if self.reticle:self.reticle.delete()
+        #if self.reticle:self.reticle.delete() SAFE
         if self.mouse_lock: self.player.mouse_motion(dx,dy)
 
     def on_key_press(self,KEY,MOD):
