@@ -37,6 +37,7 @@ class Model:
         self.batch = pyglet.graphics.Batch()
 
         self.extras=[]
+        self.enemies=[]
         self.batch2 = pyglet.graphics.Batch()
 
     def add_wall(self,sx,sy,sz,tex):
@@ -56,9 +57,17 @@ class Model:
         self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['floor'],('v3f',(0,0,0, 0,0,27, 27,0,27, 27,0,0) ),tex_coords)
 
     def draw(self):
-        #print(self.extras) BLOCK REMOVAL FINSH IT SAM
         self.batch.draw()
         self.batch2.draw()
+
+        for f in self.enemies:
+            for face in f.geometry:
+                try:
+                    face.delete()
+                    f.geometry=[]
+                except:
+                    pass
+
 
 #key/direction matrix (says how we should move based on where we are looking and what key we press)
 KDM={'w':{'n':(0,1),'e':(-1,0),'s':(0,-1),'w':(1,0),},
@@ -81,34 +90,71 @@ class Crate:
         x,y,z = sx,sy,sz
         X,Y,Z = x+0.2,y+0.2,z+0.2
 
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords))
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),tex_coords))
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chesttop'],('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),tex_coords))
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords))
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords))
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords))#front
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))#back
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),tex_coords))#bottom
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chesttop'],('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),tex_coords))#top
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords))#left
+        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['chestside'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords))#right
 
     def update(self):
         pass
 
 class Enemy:
-    def __init__(self,pos=(0,0,0),batch=None):
+    def __init__(self,pos=(0,0,0),mod=None,pref=None):
         self.pos=list(pos)
         self.geometry=[]
-        self.batch=batch
+        self.batch=mod.batch2
+        self.pref=pref
         self.wid=(self.pos[0],self.pos[2])
 
-        sx=self.pos[0]+0.4
+        sx=self.pos[0]-0.4
         sy=0
-        sz=self.pos[2]+0.4
+        sz=self.pos[2]+0.1
 
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
         x,y,z = sx,sy,sz
-        X,Y,Z = x+0.2,y+0.2,z+0.2
+        X,Y,Z = x+0.8,y+0.8,z+0.8
 
         self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
+        self.rota=1
     def update(self):
-        self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
+        self.rota=1
+        sx=self.pos[0]-0.5
+        sz=self.pos[2]
+        sy=0
+        if self.pref.pos[0]<self.pos[0] and self.pos[2]==math.floor(self.pref.pos[2]):
+            self.rota=3
+            sx=self.pos[0]+0.5
+        if self.pref.pos[0]>self.pos[0] and self.pos[2]==math.floor(self.pref.pos[2]):
+            self.rota=1
+            sx=self.pos[0]-0.5
+            sz=self.pos[2]
+        if self.pref.pos[2]<self.pos[2] and self.pos[0]==math.floor(self.pref.pos[0]):
+            self.rota=4
+            sz=self.pos[2]+0.5
+            sx=self.pos[0]
+        if self.pref.pos[2]>self.pos[2] and self.pos[0]==math.floor(self.pref.pos[0]):
+            self.rota=2
+            sz=self.pos[2]-0.5
+            sx=self.pos[0]
+
+        print (self.rota)
+
+        tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
+        x,y,z = sx,sy,sz
+        X,Y,Z = x+0.8,y+0.8,z+0.8
+
+        if self.rota==1:
+            self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),tex_coords))
+        if self.rota==2:
+            self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),tex_coords))
+        if self.rota==3:
+            self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),tex_coords))
+        if self.rota==4:
+            self.geometry.append(self.batch.add(4,GL_QUADS,FLAT_TEXTURE_GROUP['enemy1'],('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),tex_coords))
+
+
 
 class Player:
     def __init__(self,pos=(0,0,0),rot=(0,0),world=[],mod=None):
@@ -238,11 +284,13 @@ class Window(pyglet.window.Window):
         #build world (will move to model class soon)
         x=0
         y=0
+        enemylimit=32
         for row in gameLevel:
             for col in row:
                 if col==0:self.model.add_wall(x,0,y,"")
                 if col==3:self.model.extras.append(Crate((x,0,y),self.model.batch))
-                if col==4:self.model.extras.append(Enemy((x,0,y),self.model.batch2))
+                if col==4:
+                    if enemylimit>0:self.model.enemies.append(Enemy((x,0,y),self.model,self.player));enemylimit-=1
                 x+=1
             x=0
             y+=1
@@ -279,6 +327,8 @@ class Window(pyglet.window.Window):
 
     def update(self,dt):
         self.player.update(dt,self.keys)
+        for enemy in self.model.enemies:
+            enemy.update()
 
     def draw_reticle(self):
         glColor3d(0, 0, 0)
