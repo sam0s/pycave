@@ -1,7 +1,8 @@
 #sam0s
 #very sloppy way to view mazeGen.py results
 
-import pygame,mazeGen
+import pygame
+import assets.mazeGen as mazeGen
 from pygame.locals import *
 
 display = pygame.display.set_mode((640,480))
