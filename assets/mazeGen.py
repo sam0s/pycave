@@ -1,7 +1,9 @@
 import random
 
 def generate(size):
-    random.seed(random.randrange(-99999999,999999999))
+    seed=random.randrange(-99999999,999999999)
+    random.seed(seed)
+    print(seed)
     go=1
     size=size
 

@@ -109,9 +109,9 @@ class Enemy:
         self.pref=pref
         self.wid=(self.pos[0],self.pos[2])
 
-        sx=self.pos[0]-0.4
+        sx=self.pos[0]
         sy=0
-        sz=self.pos[2]+0.1
+        sz=self.pos[2]
 
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
         x,y,z = sx,sy,sz
@@ -121,25 +121,25 @@ class Enemy:
         self.rota=1
     def update(self):
         self.rota=1
-        sx=self.pos[0]-0.5
-        sz=self.pos[2]
+        sx=self.pos[0]-0.25
+        sz=self.pos[2]+0.1
         sy=0
         if self.pref.pos[0]<self.pos[0] and self.pos[2]==math.floor(self.pref.pos[2]):
             self.rota=3
             sx=self.pos[0]+0.5
+            sz=self.pos[2]+0.1
         if self.pref.pos[0]>self.pos[0] and self.pos[2]==math.floor(self.pref.pos[2]):
             self.rota=1
-            sx=self.pos[0]-0.5
-            sz=self.pos[2]
+            sx=self.pos[0]-0.25
+            sz=self.pos[2]+0.1
         if self.pref.pos[2]<self.pos[2] and self.pos[0]==math.floor(self.pref.pos[0]):
             self.rota=4
+            sx=self.pos[0]+0.06
             sz=self.pos[2]+0.5
-            sx=self.pos[0]
         if self.pref.pos[2]>self.pos[2] and self.pos[0]==math.floor(self.pref.pos[0]):
+            sx=self.pos[0]+0.1
+            sz=self.pos[2]-0.25
             self.rota=2
-            sz=self.pos[2]-0.5
-            sx=self.pos[0]
-
         tex_coords = ('t2f',(0,0, 1,0, 1,1, 0,1))
         x,y,z = sx,sy,sz
         X,Y,Z = x+0.8,y+0.8,z+0.8
@@ -190,7 +190,9 @@ class Player:
             rotdeg+=360
         #facing direction
         fd=self.get_facing(rotdeg)
-        if keys[key.SPACE]:self.pos[1]+=0.1
+        #if keys[key.SPACE]:self.pos[1]+=0.1
+        #if keys[key.LSHIFT]:self.pos[1]-=0.1
+
         if self.target==0:
             if keys[key.W]: self.target=[self.pos[0]+KDM['w'][fd][0],self.pos[2]+KDM['w'][fd][1]]
             elif keys[key.S]: self.target=[self.pos[0]+KDM['s'][fd][0],self.pos[2]+KDM['s'][fd][1]]
@@ -269,9 +271,17 @@ class Window(pyglet.window.Window):
         self.model.create_room()
 
         #set up initial weapon position
-        self.weaponSprite=pyglet.sprite.Sprite(pyglet.image.load(path.join('images','fork.png')).get_region(x=0,y=0,width=100,height=100))
+
+        self.weaponSprites=[
+        pyglet.sprite.Sprite(pyglet.image.load(path.join('images','fork.png')).get_region(x=100*0,y=0,width=100,height=130)),
+        pyglet.sprite.Sprite(pyglet.image.load(path.join('images','fork.png')).get_region(x=100*1,y=0,width=100,height=130)),
+        pyglet.sprite.Sprite(pyglet.image.load(path.join('images','fork.png')).get_region(x=100*2,y=0,width=100,height=130))
+        ]
+
+        self.weaponSprite=self.weaponSprites[0]
         self.weaponSprite.scale=((self.width+self.height)/650)
         self.weaponSprite.x=(self.width // 2)-self.weaponSprite.width/2
+        self.atkFrame=3
 
 
         gameLevel,playerPos,endPos=mazeGen.generate(25)
@@ -281,7 +291,7 @@ class Window(pyglet.window.Window):
         #build world (will move to model class soon)
         x=0
         y=0
-        enemylimit=999
+        enemylimit=100
         for row in gameLevel:
             for col in row:
                 if col==0:self.model.add_wall(x,0,y,"")
@@ -299,6 +309,14 @@ class Window(pyglet.window.Window):
             ('v2i', (x - n, y, x + n, y, x, y - n, x, y + n))
         )
 
+    def setWeaponSprite(self,ind):
+        indx=ind
+        if indx>2:indx=0
+        print(indx)
+        self.weaponSprite=self.weaponSprites[indx]
+        self.weaponSprite.scale=((self.width+self.height)/650)
+        self.weaponSprite.x=(self.width // 2)-self.weaponSprite.width/2
+        #self.atkFrame=4
 
     def on_resize(self, width, height):
         #weaponSprite
@@ -317,12 +335,22 @@ class Window(pyglet.window.Window):
     def on_mouse_motion(self,x,y,dx,dy):
         #if self.reticle:self.reticle.delete() SAFE
         if self.mouse_lock: self.player.mouse_motion(dx,dy)
-
+    def on_mouse_release(self,x,y,button,modifiers):
+        print(x,y,button,modifiers)
     def on_key_press(self,KEY,MOD):
+        if KEY == key.SPACE:
+            if self.atkFrame==3:self.atkFrame=0
         if KEY == key.ESCAPE: self.close()
         elif KEY == key.E: self.mouse_lock = not self.mouse_lock
 
     def update(self,dt):
+        if self.atkFrame<3:
+            self.atkFrame+=dt*10
+            if math.floor(self.atkFrame)==3:self.atkFrame=3
+            print(math.floor(self.atkFrame))
+            self.setWeaponSprite(math.floor(self.atkFrame))
+
+
         self.player.update(dt,self.keys)
         for enemy in self.model.enemies:
             enemy.update()
@@ -339,5 +367,6 @@ class Window(pyglet.window.Window):
         glPopMatrix()
         self.set2d()
         self.draw_reticle()
+        #self.weaponSprite.y+=1
         self.weaponSprite.draw()
         glColor3d(1,1,1)
