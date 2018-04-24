@@ -1,8 +1,0 @@
-{
-    "variants": {
-        "facing=north": { "model": "lit_furnace", "uvlock": true },
-        "facing=south": { "model": "lit_furnace", "y": 180, "uvlock": true },
-        "facing=west":  { "model": "lit_furnace", "y": 270, "uvlock": true },
-        "facing=east":  { "model": "lit_furnace", "y": 90, "uvlock": true }
-    }
-}
