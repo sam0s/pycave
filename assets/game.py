@@ -24,8 +24,8 @@ FLAT_TEXTURE_GROUP={
 'floor':get_tex(path.join('images','floor.png')),
 'wall':get_tex(path.join('images','wall.png')),
 'ceiling':get_tex(path.join('images','ceiling.png')),
-'chestside':get_tex(path.join('images','chests.png')),
-'chesttop':get_tex(path.join('images','chestt.png')),
+'chestside':get_tex(path.join('images','chestSIDE.png')),
+'chesttop':get_tex(path.join('images','chestTOP.png')),
 'enemy1':get_tex(path.join('images','orc.png'))
 }
 
@@ -38,6 +38,9 @@ class Model:
 
         self.extras=[]
         self.enemies=[]
+        self.projectiles=[]
+
+        #batch2 supports objects with changing geometry such as projectiles,enemies,and crates.
         self.batch2 = pyglet.graphics.Batch()
 
     def add_wall(self,sx,sy,sz,tex):
@@ -75,6 +78,31 @@ KDM={'w':{'n':(0,1),'e':(-1,0),'s':(0,-1),'w':(1,0),},
     'a':{'n':(1,0),'e':(0,1),'s':(-1,0),'w':(0,-1),},
     'd':{'n':(-1,0),'e':(0,-1),'s':(1,0),'w':(0,1),}}
 
+class Bullet:
+    def __init__(self,pos=(0,0,0),mod=None):
+        self.pos=list(pos)
+        self.geometry=[]
+        self.batch=mod.batch2
+    def drawModel(self):
+        sx=self.pos[0]
+        sy=self.pos[1]
+        sz=self.pos[2]
+
+        x,y,z = sx,sy,sz
+        X,Y,Z = x+0.2,y+0.2,z+0.2
+        color=('c3f',(1,1,1,)*4)
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(x,y,z, x,y,Z, x,Y,Z, x,Y,z, )),color))#front
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(X,y,Z, X,y,z, X,Y,z, X,Y,Z, )),color))#back
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(x,y,z, X,y,z, X,y,Z, x,y,Z, )),color))#bottom
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(x,Y,Z, X,Y,Z, X,Y,z, x,Y,z, )),color))#top
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(X,y,z, x,y,z, x,Y,z, X,Y,z, )),color))#left
+        self.geometry.append(self.batch.add(4,GL_QUADS,None,('v3f',(x,y,Z, X,y,Z, X,Y,Z, x,Y,Z, )),color))#right
+
+    def update(self):
+
+        self.pos[1]+=0.005
+        self.drawModel()
+        print(self.geometry)
 
 class Crate:
     def __init__(self,pos=(0,0,0),batch=None):
@@ -287,7 +315,7 @@ class Window(pyglet.window.Window):
         gameLevel,playerPos,endPos=mazeGen.generate(25)
         #self.player = Player((playerPos[0],0.3,playerPos[1]),(-30,0))
         self.player = Player((playerPos[0]+0.5,0.5,playerPos[1]+0.5),(-30,0),gameLevel,self.model)
-
+        self.model.enemies.append(Bullet((playerPos[0],0,playerPos[1]),self.model))
         #build world (will move to model class soon)
         x=0
         y=0
